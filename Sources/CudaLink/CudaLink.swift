@@ -3,6 +3,12 @@ import Foundation
 
 @main
 struct CudaLink: ParsableCommand {
+    @Option(name: .customLong("nvcc-path"), help: "Path to nvcc")
+    var nvccPath: String = "/usr/local/cuda/bin/nvcc"
+
+    @Option(name: .customLong("clangpp-path"), help: "Path to clang++")
+    var clangppPath: String = "/usr/bin/clang++"
+
     @Argument(help: "Input .cpp files to link")
     var inputFiles: [String]
 
@@ -28,8 +34,8 @@ struct CudaLink: ParsableCommand {
 
     func nvcc(args: [String]) throws {
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/local/cuda/bin/nvcc")
-        process.arguments = ["-ccbin=clang++"] + (verbose ? ["-v"] : []) + args
+        process.executableURL = URL(fileURLWithPath: nvccPath)
+        process.arguments = ["-ccbin=\(clangppPath)"] + (verbose ? ["-v"] : []) + args
         try process.run()
         process.waitUntilExit()
 
@@ -40,8 +46,8 @@ struct CudaLink: ParsableCommand {
 
     func clang(args: [String]) throws {
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/home/gabriele/.local/share/swiftly/bin/swiftly")
-        process.arguments = ["run", "clang++"] + (verbose ? ["-v"] : []) + args
+        process.executableURL = URL(fileURLWithPath: clangppPath)
+        process.arguments = (verbose ? ["-v"] : []) + args
         try process.run()
         process.waitUntilExit()
 

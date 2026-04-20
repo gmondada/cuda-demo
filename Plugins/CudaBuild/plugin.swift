@@ -27,6 +27,17 @@ struct CudaBuild: BuildToolPlugin {
 
         print("Input files: \(inputFiles.map { $0.relativePath })")
 
+        guard let nvccUrl = searchForCommand("nvcc") else {
+            fatalError("nvcc not found")
+        }
+
+        guard let clangUrl = try? context.tool(named: "clang++") else {
+            fatalError("clang++ not found")
+        }
+
+        print("nvcc found at: \(nvccUrl.path)")
+        print("clang++ found at: \(clangUrl.url.path)")
+
         let outputDir = context.pluginWorkDirectoryURL
 
         var commands: [Command] = []
@@ -38,10 +49,10 @@ struct CudaBuild: BuildToolPlugin {
             commands.append(
                 .buildCommand(
                     displayName: "Compiling \(inputFile.lastPathComponent) to \(outputCpp.lastPathComponent)",
-                    executable: URL(fileURLWithPath: "/usr/local/cuda/bin/nvcc"),
+                    executable: nvccUrl,
                     arguments: [
                         "-cuda", "-rdc=true",
-                        "-ccbin=clang++",
+                        "-ccbin=\(clangUrl.url.path)",
                         "-I", sourceDir.path,
                         "-I", sourceDir.path + "/../../../cuda-samples/Common",
                         // "-I", sourceDir.path + "/mlx",
@@ -69,12 +80,26 @@ struct CudaBuild: BuildToolPlugin {
             .buildCommand(
                 displayName: "Linking CUDA objects",
                 executable: cudaLinkTool.url,
-                arguments: outputCpps.map { $0.path } + ["-o", linkOutput.path],
+                arguments: [
+                    "--nvcc-path", nvccUrl.path,
+                    "--clangpp-path", clangUrl.url.path,
+                ] + outputCpps.map { $0.path } + ["-o", linkOutput.path],
                 inputFiles: outputCpps,
                 outputFiles: [linkOutput]
             )
         )
 
         return commands
+    }
+
+    func searchForCommand(_ name: String) -> URL? {
+        let path = ProcessInfo.processInfo.environment["PATH"] ?? ""
+        for folder in path.split(separator: ":") {
+            let url = URL(fileURLWithPath: String(folder)).appendingPathComponent(name)
+            if FileManager.default.isExecutableFile(atPath: url.path) {
+                return url
+            }
+        }
+        return nil
     }
 }

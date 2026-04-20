@@ -13,6 +13,7 @@ let package = Package(
             name: "cuda-demo",
             linkerSettings: [
                 .unsafeFlags(["-L/usr/local/cuda/targets/x86_64-linux/lib"]),
+                .unsafeFlags(["-L/usr/local/cuda/targets/sbsa-linux/lib"]),
                 .linkedLibrary("cudadevrt"),
                 .linkedLibrary("cudart_static"),
             ],

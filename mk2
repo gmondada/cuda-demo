@@ -31,4 +31,5 @@ nvcc $FLAGS --device-link vectorAdd.o b.o -o link.cpp -Xcompiler -E
 
 echo
 echo "Final link"
-clang++ -o a.out vectorAdd.cpp b.cpp link.cpp -L/usr/local/cuda-13.2/targets/aarch64-linux/lib -lcudart -lcuda
+LIB_DIR=$(ls -d /usr/local/cuda-13.2/targets/*-linux/lib 2>/dev/null | head -1)
+clang++ -o a.out vectorAdd.cpp b.cpp link.cpp -L$LIB_DIR -lcudart -lcuda
