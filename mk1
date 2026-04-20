@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -e
+
+case $0 in
+/*)     D=`dirname $0`;;
+*/*)    D=$PWD/`dirname $0`;;
+*)      D=$PWD;;
+esac
+
+cd "$D"
+
+FLAGS="-arch=sm_87 --gpu-architecture=sm_87 -ccbin=clang++"
+
+rm -rf build1 || true
+mkdir -p build1
+cd build1
+
+echo
+echo "Compile 1"
+mkdir -p intermediate/1
+nvcc $FLAGS --device-c ../Sources/cuda-demo/vectorAdd.cu -I ../../cuda-samples/Common --keep --keep-dir=intermediate/1
+
+echo
+echo "Compile 2"
+mkdir -p intermediate/2
+nvcc $FLAGS --device-c ../Sources/cuda-demo/b.cu -I ../../cuda-samples/Common --keep --keep-dir=intermediate/2
+
+echo
+echo "CUDA Link"
+mkdir -p intermediate/3
+nvcc $FLAGS --device-link vectorAdd.o b.o --output-file link.o --keep --keep-dir=intermediate/3
+
+echo
+echo "Final link"
+nvcc $FLAGS vectorAdd.o b.o link.o -o a.out

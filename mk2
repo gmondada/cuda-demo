@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -e
+
+case $0 in
+/*)     D=`dirname $0`;;
+*/*)    D=$PWD/`dirname $0`;;
+*)      D=$PWD;;
+esac
+
+cd "$D"
+
+rm -rf build2 || true
+mkdir -p build2
+cd build2
+
+FLAGS="-arch=sm_87 --gpu-architecture=sm_87 -I ../../cuda-samples/Common -ccbin=clang++"
+echo
+echo "Compile 1"
+nvcc $FLAGS -cuda -rdc=true ../Sources/cuda-demo/vectorAdd.cu -o vectorAdd.cpp
+nvcc $FLAGS --device-c ../Sources/cuda-demo/vectorAdd.cu -o vectorAdd.o
+
+echo
+echo "Compile 2"
+nvcc $FLAGS -cuda -rdc=true ../Sources/cuda-demo/b.cu -o b.cpp
+nvcc $FLAGS --device-c ../Sources/cuda-demo/b.cu -o b.o
+
+echo
+echo "CUDA Link"
+nvcc $FLAGS --device-link vectorAdd.o b.o -o link.cpp -Xcompiler -E
+
+echo
+echo "Final link"
+clang++ -o a.out vectorAdd.cpp b.cpp link.cpp -L/usr/local/cuda-13.2/targets/aarch64-linux/lib -lcudart -lcuda
