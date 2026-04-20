@@ -7,6 +7,18 @@ struct CudaBuild: BuildToolPlugin {
 
         print("CUDA Build Plugin")
 
+        guard let nvccUrl = searchForCommand("nvcc") else {
+            fatalError("nvcc not found")
+        }
+
+        print("Use nvcc at: \(nvccUrl.path)")
+
+        guard let clangUrl = try? context.tool(named: "clang++") else {
+            fatalError("clang++ not found")
+        }
+
+        print("Use clang++ at: \(clangUrl.url.path)")
+
         let sourceDir = target.directoryURL
 
         print("Source directory: \(sourceDir.path)")
@@ -26,17 +38,6 @@ struct CudaBuild: BuildToolPlugin {
         }
 
         print("Input files: \(inputFiles.map { $0.relativePath })")
-
-        guard let nvccUrl = searchForCommand("nvcc") else {
-            fatalError("nvcc not found")
-        }
-
-        guard let clangUrl = try? context.tool(named: "clang++") else {
-            fatalError("clang++ not found")
-        }
-
-        print("nvcc found at: \(nvccUrl.path)")
-        print("clang++ found at: \(clangUrl.url.path)")
 
         let outputDir = context.pluginWorkDirectoryURL
 
