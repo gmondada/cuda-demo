@@ -37,7 +37,6 @@
 
 // For the CUDA runtime routines (prefixed with "cuda_")
 #include <cuda_runtime.h>
-#include <helper_cuda.h>
 #include "b.h"
 
 /**

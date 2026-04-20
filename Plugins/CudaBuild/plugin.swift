@@ -54,7 +54,6 @@ struct CudaBuild: BuildToolPlugin {
                         "-cuda", "-rdc=true",
                         "-ccbin=\(clangUrl.url.path)",
                         "-I", sourceDir.path,
-                        "-I", sourceDir.path + "/../../../cuda-samples/Common",
                         // "-I", sourceDir.path + "/mlx",
                         inputFile.path,
                         "-o", outputCpp.path
