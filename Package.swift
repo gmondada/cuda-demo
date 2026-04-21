@@ -25,11 +25,11 @@ let package = Package(
             name: "CudaBuild",
             capability: .buildTool(),
             dependencies: [
-                .target(name: "CudaLink"),
+                .target(name: "encuda"),
             ],
         ),
         .executableTarget(
-            name: "CudaLink",
+            name: "encuda",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ],

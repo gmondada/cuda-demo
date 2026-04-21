@@ -7,12 +7,6 @@ struct CudaBuild: BuildToolPlugin {
 
         print("CUDA Build Plugin")
 
-        guard let nvccUrl = searchForCommand("nvcc") else {
-            fatalError("nvcc not found")
-        }
-
-        print("Use nvcc at: \(nvccUrl.path)")
-
         guard let clangUrl = try? context.tool(named: "clang++") else {
             fatalError("clang++ not found")
         }
@@ -43,21 +37,22 @@ struct CudaBuild: BuildToolPlugin {
 
         var commands: [Command] = []
 
-        // Compile each .cu file to .cpp
+        // Invoke `encuda compile` to compile each .cu file to .cpp
+
+        let encuda = try context.tool(named: "encuda")
 
         for inputFile in inputFiles {
             let outputCpp = URL(string: inputFile.relativePath, relativeTo: outputDir)!.deletingPathExtension().appendingPathExtension("cpp")
             commands.append(
                 .buildCommand(
                     displayName: "Compiling \(inputFile.lastPathComponent) to \(outputCpp.lastPathComponent)",
-                    executable: nvccUrl,
+                    executable: encuda.url,
                     arguments: [
-                        "-cuda", "-rdc=true",
-                        "-ccbin=\(clangUrl.url.path)",
+                        "compile",
+                        "--clangpp", clangUrl.url.path,
                         "-I", sourceDir.path,
-                        // "-I", sourceDir.path + "/mlx",
                         inputFile.path,
-                        "-o", outputCpp.path
+                        "-o", outputCpp.path,
                     ],
                     inputFiles: [inputFile],
                     outputFiles: [outputCpp]
@@ -65,7 +60,7 @@ struct CudaBuild: BuildToolPlugin {
             )
         }
 
-        // Invoke CudaLink command with all .cpp files
+        // Invoke `encuda link` with all .cpp files
 
         let outputCpps = inputFiles.map { inputFile in
             URL(string: inputFile.relativePath, relativeTo: outputDir)!
@@ -73,16 +68,15 @@ struct CudaBuild: BuildToolPlugin {
                 .appendingPathExtension("cpp")
         }
 
-        let cudaLinkTool = try context.tool(named: "CudaLink")
         let linkOutput = outputDir.appendingPathComponent("__cuda_link.cpp")
 
         commands.append(
             .buildCommand(
                 displayName: "Linking CUDA objects",
-                executable: cudaLinkTool.url,
+                executable: encuda.url,
                 arguments: [
-                    "--nvcc-path", nvccUrl.path,
-                    "--clangpp-path", clangUrl.url.path,
+                    "link",
+                    "--clangpp", clangUrl.url.path,
                 ] + outputCpps.map { $0.path } + ["-o", linkOutput.path],
                 inputFiles: outputCpps,
                 outputFiles: [linkOutput]
@@ -90,16 +84,5 @@ struct CudaBuild: BuildToolPlugin {
         )
 
         return commands
-    }
-
-    func searchForCommand(_ name: String) -> URL? {
-        let path = ProcessInfo.processInfo.environment["PATH"] ?? ""
-        for folder in path.split(separator: ":") {
-            let url = URL(fileURLWithPath: String(folder)).appendingPathComponent(name)
-            if FileManager.default.isExecutableFile(atPath: url.path) {
-                return url
-            }
-        }
-        return nil
     }
 }

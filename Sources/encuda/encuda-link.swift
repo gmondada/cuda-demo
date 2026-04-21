@@ -1,0 +1,83 @@
+import ArgumentParser
+import Foundation
+
+extension Encuda {
+    struct Link: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            commandName: "link"
+        )
+
+        @Option(name: .customLong("nvcc"), help: "Path to nvcc")
+        var nvccPath: String? = nil
+
+        @Option(name: .customLong("clangpp"), help: "Path to clang++")
+        var clangppPath: String? = nil
+
+        @Argument(help: "Input .cpp files to link")
+        var inputFiles: [String]
+
+        @Option(name: .customShort("o"), help: "Output file path")
+        var output: String
+
+        @Flag(name: .customShort("v"), help: "Enable verbose output")
+        var verbose: Bool = false
+
+        mutating func run() throws {
+            if verbose {
+                print("CUDA Link")
+                print("Input files: \(inputFiles)")
+                print("Output file: \(output)")
+            }
+
+            for input in inputFiles {
+                try clang(args: ["-c", input, "-o", input + ".o"])
+            }
+
+            try nvcc(args: ["--device-link"] + inputFiles.map { $0 + ".o" } + ["-o", output, "-Xcompiler", "-E"])
+        }
+
+        var resolvedNvcc: String {
+            if let path = nvccPath {
+                return path
+            } else if let found = searchForCommand("nvcc") {
+                return found.path
+            } else {
+                fatalError("nvcc not found")
+            }
+        }
+
+        var resolvedClangpp: String {
+            if let path = clangppPath {
+                return path
+            } else if let found = searchForCommand("clang++") {
+                return found.path
+            } else {
+                fatalError("clang++ not found")
+            }
+        }
+
+        func nvcc(args: [String]) throws {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: resolvedNvcc)
+            process.arguments = ["-ccbin=\(resolvedClangpp)"] + (verbose ? ["-v"] : []) + args
+            try process.run()
+            process.waitUntilExit()
+
+            guard process.terminationStatus == 0 else {
+                throw EncudaError.nvccFailed(process.terminationStatus)
+            }
+        }
+
+        func clang(args: [String]) throws {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: resolvedClangpp)
+            process.arguments = (verbose ? ["-v"] : []) + args
+            try process.run()
+            process.waitUntilExit()
+
+            guard process.terminationStatus == 0 else {
+                throw EncudaError.clangFailed(process.terminationStatus)
+            }
+        }
+    }
+}
