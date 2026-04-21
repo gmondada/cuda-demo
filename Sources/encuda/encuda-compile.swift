@@ -26,6 +26,11 @@ extension Encuda {
         var verbose: Bool = false
 
         mutating func run() throws {
+
+            if verbose {
+                print("Running encuda compile")
+            }
+
             let resolvedNvcc: String
             if let path = nvccPath {
                 resolvedNvcc = path
@@ -43,7 +48,7 @@ extension Encuda {
             process.executableURL = URL(fileURLWithPath: resolvedNvcc)
             process.arguments = ["-cuda", "-rdc=true"] + ccbinArgs + (verbose ? ["-v"] : []) + includeArgs + inputFiles + ["-o", output]
             try process.run()
-            process.waitUntilExit()
+            process.waitUntilExitWorkaround()
             guard process.terminationStatus == 0 else {
                 throw EncudaError.nvccFailed(process.terminationStatus)
             }

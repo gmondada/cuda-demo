@@ -3,6 +3,8 @@ import PackagePlugin
 
 @main
 struct CudaBuild: BuildToolPlugin {
+    let verbose = false
+
     func createBuildCommands(context: PluginContext, target: Target) async throws -> [Command] {
 
         print("CUDA Build Plugin")
@@ -40,6 +42,7 @@ struct CudaBuild: BuildToolPlugin {
         // Invoke `encuda compile` to compile each .cu file to .cpp
 
         let encuda = try context.tool(named: "encuda")
+        let verboseFlag = verbose ? ["-v"] : []
 
         for inputFile in inputFiles {
             let outputCpp = URL(string: inputFile.relativePath, relativeTo: outputDir)!.deletingPathExtension().appendingPathExtension("cpp")
@@ -47,8 +50,7 @@ struct CudaBuild: BuildToolPlugin {
                 .buildCommand(
                     displayName: "Compiling \(inputFile.lastPathComponent) to \(outputCpp.lastPathComponent)",
                     executable: encuda.url,
-                    arguments: [
-                        "compile",
+                    arguments: ["compile"] + verboseFlag + [
                         "--clangpp", clangUrl.url.path,
                         "-I", sourceDir.path,
                         inputFile.path,
@@ -74,8 +76,7 @@ struct CudaBuild: BuildToolPlugin {
             .buildCommand(
                 displayName: "Linking CUDA objects",
                 executable: encuda.url,
-                arguments: [
-                    "link",
+                arguments: ["link"] + verboseFlag + [
                     "--clangpp", clangUrl.url.path,
                 ] + outputCpps.map { $0.path } + ["-o", linkOutput.path],
                 inputFiles: outputCpps,

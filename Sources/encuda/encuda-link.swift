@@ -61,8 +61,7 @@ extension Encuda {
             process.executableURL = URL(fileURLWithPath: resolvedNvcc)
             process.arguments = ["-ccbin=\(resolvedClangpp)"] + (verbose ? ["-v"] : []) + args
             try process.run()
-            process.waitUntilExit()
-
+            process.waitUntilExitWorkaround()
             guard process.terminationStatus == 0 else {
                 throw EncudaError.nvccFailed(process.terminationStatus)
             }
@@ -73,8 +72,7 @@ extension Encuda {
             process.executableURL = URL(fileURLWithPath: resolvedClangpp)
             process.arguments = (verbose ? ["-v"] : []) + args
             try process.run()
-            process.waitUntilExit()
-
+            process.waitUntilExitWorkaround()
             guard process.terminationStatus == 0 else {
                 throw EncudaError.clangFailed(process.terminationStatus)
             }
