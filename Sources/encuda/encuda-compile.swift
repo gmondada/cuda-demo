@@ -22,6 +22,9 @@ extension Encuda {
         @Argument(help: "Input .cu files to compile")
         var inputFiles: [String]
 
+        @Option(name: .customLong("std"), help: "C++ standard to use (e.g., c++17, c++20)")
+        var std: String? = nil
+
         @Flag(name: .customShort("v"), help: "Enable verbose output")
         var verbose: Bool = false
 
@@ -41,12 +44,13 @@ extension Encuda {
             }
 
             let includeArgs = includeDirs.flatMap { ["-I", $0] }
-
             let ccbinArgs = clangppPath.map { ["-ccbin=\($0)"] } ?? []
+            let stdArgs = std.map { ["-std=\($0)"] } ?? []
+            let archArgs = ProcessInfo.processInfo.environment["CUDA_ARCH"].map { ["-arch", $0] } ?? []
 
             let process = Process()
             process.executableURL = URL(fileURLWithPath: resolvedNvcc)
-            process.arguments = ["-cuda", "-rdc=true"] + ccbinArgs + (verbose ? ["-v"] : []) + includeArgs + inputFiles + ["-o", output]
+            process.arguments = ["-cuda", "-rdc=true", "--expt-relaxed-constexpr"] + stdArgs + ccbinArgs + archArgs + (verbose ? ["-v"] : []) + includeArgs + inputFiles + ["-o", output]
             try process.run()
             process.waitUntilExitWorkaround()
             guard process.terminationStatus == 0 else {

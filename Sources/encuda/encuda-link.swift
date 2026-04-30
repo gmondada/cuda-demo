@@ -19,6 +19,9 @@ extension Encuda {
         @Option(name: .customShort("o"), help: "Output file path")
         var output: String
 
+        @Option(name: .customLong("std"), help: "C++ standard to use (e.g., c++17, c++20)")
+        var std: String? = nil
+
         @Flag(name: .customShort("v"), help: "Enable verbose output")
         var verbose: Bool = false
 
@@ -29,11 +32,14 @@ extension Encuda {
                 print("Output file: \(output)")
             }
 
+            let stdArgs = std.map { ["-std=\($0)"] } ?? []
+            let archArgs = ProcessInfo.processInfo.environment["CUDA_ARCH"].map { ["-arch", $0] } ?? []
+
             for input in inputFiles {
-                try clang(args: ["-c", input, "-o", input + ".o"])
+                try clang(args: stdArgs + ["-c", input, "-o", input + ".o"])
             }
 
-            try nvcc(args: ["--device-link"] + inputFiles.map { $0 + ".o" } + ["-o", output, "-Xcompiler", "-E"])
+            try nvcc(args: ["--device-link"] + stdArgs + archArgs + inputFiles.map { $0 + ".o" } + ["-o", output, "-Xcompiler", "-E"])
         }
 
         var resolvedNvcc: String {
